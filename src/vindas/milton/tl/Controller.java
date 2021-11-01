@@ -33,7 +33,7 @@ public class Controller {
             tipoArbol = menuArbol.leerOpcion();
 
 
-            if (tipoArbol<1 || tipoArbol>3) {
+            if (tipoArbol<1 || tipoArbol>4) {
                 menuArbol.imprimirMensaje("Opción incorrecta. Ingrese un tipo de árbol de la lista");
             }
             else {
@@ -45,14 +45,14 @@ public class Controller {
             }
 
         }
-        while (tipoArbol<1 || tipoArbol>3);
+        while (tipoArbol<1 || tipoArbol>4);
 
         do {
             interfaz.mostrarMenu();
             opcion = interfaz.leerOpcion();
             procesarOpcion(opcion, tipoArbol);
         }
-        while (opcion != 3);
+        while (opcion != 5);
     }
 
     public void procesarOpcion(int pOpcion, int pTipoArbol) throws Exception {
@@ -65,6 +65,9 @@ public class Controller {
                 break;
             case 3:
                 interfaz.imprimirMensaje("Usted ha seleccionado salir del sistema.");
+                break;
+            case 4:
+                interfaz.imprimirMensaje("Usted ha seleccionasssssdo salir del sistema.");
                 break;
             default:
                 interfaz.imprimirMensaje("Opción incorrecta.");
@@ -83,7 +86,7 @@ public class Controller {
 
     public void mostrarArbol(int pTipoArbol) throws IOException {
         int orden;
-        if (pTipoArbol == 1) {
+        if (pTipoArbol == 1 || pTipoArbol == 3) {
             interfaz.imprimirMensaje("Digite el tipo de orden para desplegar el árbol: 1. Preorden, 2. Inorden, 3. Postorden ");
             orden = interfaz.leerOpcion();
         }
