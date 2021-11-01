@@ -37,7 +37,7 @@ public class Controller {
                 menuArbol.imprimirMensaje("Opción incorrecta. Ingrese un tipo de árbol de la lista");
             }
             else {
-                if (tipoArbol == 2) {
+                if (tipoArbol == 2 || tipoArbol == 3) {
                     interfaz.mostrarGrado();
                     maxClaves = interfaz.leerOpcion();
                 }

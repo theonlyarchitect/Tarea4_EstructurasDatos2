@@ -1,5 +1,6 @@
 package vindas.milton.bl.productoConcreto;
 
+import vindas.milton.bl.nodos.NodoB;
 import vindas.milton.bl.nodos.nodoBPlus.NodoBPlus;
 import vindas.milton.bl.nodos.nodoBPlus.NodoBPlusHoja;
 import vindas.milton.bl.nodos.nodoBPlus.NodoBPlusIntr;
@@ -33,18 +34,13 @@ public class ArbolBPlus implements Arbol {
         this.raiz = null;
     }
 
-    /**
-     * Método que define si el árbol está vacío o no
-     * @return El booleano con el resultado
-     */
-    private boolean esVacio() {
-        return primeraHoja == null;
-    }
+
 
     @Override
     public String despliegue(int pOrden) {
-        return null;
+        return despliegue(raiz);
     }
+
 
     @Override
     public void insertar(int pClave) {
@@ -65,7 +61,7 @@ public class ArbolBPlus implements Arbol {
 
                 // Paso 2: Se establece punto de división y se dividen claves
                 int puntoMedio = getPuntoMedio();
-                Integer[] mitadClaves = dividirClaves(nodoH, puntoMedio);
+                Integer[] mitadClaves = dividirClavesHoja(nodoH, puntoMedio);
 
                 // Paso 3. Resolver relaciones padre-hijos
                 // A. Si el nodo hoja no tiene padre...
@@ -128,6 +124,14 @@ public class ArbolBPlus implements Arbol {
     }
 
     /**
+     * Método que define si el árbol está vacío o no
+     * @return El booleano con el resultado
+     */
+    private boolean esVacio() {
+        return primeraHoja == null;
+    }
+
+    /**
      * Método que encuentra el nodo hoja que contiene una clave
      * @param pClave El entero que representa la clave a buscar
      * @return Retorna el nodo hoja que contiene la clave
@@ -183,7 +187,13 @@ public class ArbolBPlus implements Arbol {
         return (int) Math.ceil((this.m + 1) / 2.0) - 1;
     }
 
-    private Integer[] dividirClaves(NodoBPlusHoja pNodoH, int pPosMedia) {
+    /**
+     * Método que divide las claves en una hoja que alcanza su grado máximo
+     * @param pNodoH El nodo hoja al que se le va a dividir sus llaves
+     * @param pPosMedia El posición media en la que se va a realizar la división
+     * @return El arreglo de claves dividido en dos
+     */
+    private Integer[] dividirClavesHoja(NodoBPlusHoja pNodoH, int pPosMedia) {
 
         Integer[] claves = pNodoH.getClaves();
 
@@ -197,52 +207,211 @@ public class ArbolBPlus implements Arbol {
         return mitadClaves;
     }
 
+    /**
+     * Método que divide las claves de un nodo interno
+     * @param pClaves Las claves actuales del nodo interno
+     * @param pPosMedia La posición de división de claves
+     * @return Retorna la mitad del arreglo de claves
+     */
+    private Integer[] dividirClavesIntr(Integer[] pClaves, int pPosMedia) {
+
+        Integer[] mitadClaves = new Integer[this.m];
+
+        pClaves[pPosMedia] = null;
+
+        for (int i = pPosMedia + 1; i < pClaves.length; i++) {
+            mitadClaves[i - pPosMedia - 1] = pClaves[i];
+            pClaves[i] = null;
+        }
+
+        return mitadClaves;
+    }
+
+    /**
+     * Método que divide los hijos de un nodo interno
+     * @param pNodoBPlusIntr El nodo interno a dividir
+     * @param pPosMedia La posición en la que se realiza la división
+     * @return Un arreglo de nodos que contiene la mitad de la división
+     */
+    private NodoBPlus[] dividirHijos(NodoBPlusIntr pNodoBPlusIntr, int pPosMedia) {
+
+        NodoBPlus[] hijos = pNodoBPlusIntr.getHijos();
+        NodoBPlus[] mitadHijos = new NodoBPlus[this.m + 1];
+
+        for (int i = pPosMedia + 1; i < hijos.length; i++) {
+            mitadHijos[i - pPosMedia - 1] = hijos[i];
+            pNodoBPlusIntr.removerHijo(i);
+        }
+
+        return mitadHijos;
+    }
+
+    /**
+     * Método general que divide un nodo interno cuando se alcanza el máximo grado
+     * @param pNodoIntr El nodo interno con grado máximo
+     */
     private void dividirNodoInterno(NodoBPlusIntr pNodoIntr) {
 
         NodoBPlusIntr padre = pNodoIntr.getPadre();
 
-        /*int midpoint = getMidpoint();
-        int newParentKey = in.keys[midpoint];
-        Integer[] halfKeys = splitKeys(in.keys, midpoint);
-        Node[] halfPointers = splitChildPointers(in, midpoint);
+        int posMedia = getPuntoMedio();
+        int nuevaClavePadre = pNodoIntr.getClaves()[posMedia];
+        Integer[] mitadClaves = dividirClavesIntr(pNodoIntr.getClaves(), posMedia);
+        NodoBPlus[] mitadHijos = dividirHijos(pNodoIntr, posMedia);
 
-        in.degree = linearNullSearch(in.childPointers);
+        pNodoIntr.setNumClaves(calcularGradoporHijos(pNodoIntr.getHijos()));
 
-        InternalNode sibling = new InternalNode(this.m, halfKeys, halfPointers);
-        for (Node pointer : halfPointers) {
-            if (pointer != null) {
-                pointer.parent = sibling;
+        // Se definen padre y hermanos del nuevo nodo creado
+        NodoBPlusIntr hermano = new NodoBPlusIntr(this.m, mitadClaves, mitadHijos);
+        for (NodoBPlus hijo : mitadHijos) {
+            if (hijo != null) {
+                hijo.setPadre(hermano);
             }
         }
 
-        sibling.rightSibling = in.rightSibling;
-        if (sibling.rightSibling != null) {
-            sibling.rightSibling.leftSibling = sibling;
+        hermano.setHermanoDer(pNodoIntr.getHermanoDer());
+        if (hermano.getHermanoDer() != null) {
+            hermano.getHermanoDer().setHermanoIzq(hermano);
         }
-        in.rightSibling = sibling;
-        sibling.leftSibling = in;
 
-        if (parent == null) {
+        pNodoIntr.setHermanoDer(hermano);
+        hermano.setHermanoIzq(pNodoIntr);
 
-            Integer[] keys = new Integer[this.m];
-            keys[0] = newParentKey;
-            InternalNode newRoot = new InternalNode(this.m, keys);
-            newRoot.appendChildPointer(in);
-            newRoot.appendChildPointer(sibling);
-            this.root = newRoot;
+        //Se crea nueva raíz y se agregan hijos
+        if (padre == null) {
 
-            in.parent = newRoot;
-            sibling.parent = newRoot;
+            Integer[] claves = new Integer[this.m];
+            claves[0] = nuevaClavePadre;
+            NodoBPlusIntr nuevaRaiz = new NodoBPlusIntr(this.m, claves);
+            nuevaRaiz.agregarHijo(pNodoIntr);
+            nuevaRaiz.agregarHijo(hermano);
+            this.raiz = nuevaRaiz;
+
+            pNodoIntr.setPadre(nuevaRaiz);
+            hermano.setPadre(nuevaRaiz);
 
         } else {
 
-            parent.keys[parent.degree - 1] = newParentKey;
-            Arrays.sort(parent.keys, 0, parent.degree);
+            padre.getClaves()[padre.getNumClaves() - 1] = nuevaClavePadre;
+            Arrays.sort(padre.getClaves(), 0, padre.getNumClaves());
 
-            int pointerIndex = parent.findIndexOfPointer(in) + 1;
-            parent.insertChildPointer(sibling, pointerIndex);
-            sibling.parent = parent;
-        }*/
+            int posHijo = padre.encontrarPosHijo(pNodoIntr) + 1;
+            padre.agregarHijoconPos(hermano, posHijo);
+            hermano.setPadre(padre);
+        }
     }
+
+    /**
+     * Método que calcula el grado de un nodo según los hijos que tiene
+     * @param hijos Los hijos del nodo
+     * @return Devuelve el entero con el número de claves actual del nodo.
+     */
+    private int calcularGradoporHijos(NodoBPlus[] hijos) {
+        for (int i = 0; i < hijos.length; i++) {
+            if (hijos[i] == null) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+
+    private String despliegue(NodoBPlus actual) {
+        String result = "";
+        NodoBPlusHoja nodoImpresionHoja;
+
+        if (actual == null && primeraHoja == null) {
+            result = result + "No se han ingresado claves en el árbol B+";
+        }
+
+        if (actual == null) {
+            nodoImpresionHoja = primeraHoja;
+            result = result + "Hojas: ";
+            while (nodoImpresionHoja != null) {
+                for (int i = 0; i < nodoImpresionHoja.getNumClaves(); i++) {
+                    result = result + nodoImpresionHoja.getClaves()[i] + " " ;
+                }
+                result = result + "    ";
+                nodoImpresionHoja = nodoImpresionHoja.getHermanoDer();
+            }
+        }
+        else {
+            int contInternos = 1;
+            result = result + "Raíz:  ";
+            NodoBPlusIntr raiz = (NodoBPlusIntr) actual;
+
+            for (int i = 0; i < raiz.getNumClaves(); i++) {
+                if (raiz.getClaves()[i] != null) {
+                    result = result + raiz.getClaves()[i] + " " ;
+                }
+                else {
+                    break;
+                }
+            }
+
+            if (raiz.getHijos()[0].isHoja()) {
+                result = result + "\n";
+                nodoImpresionHoja = primeraHoja;
+                result = result + "Hojas: ";
+                while (nodoImpresionHoja != null) {
+                    for (int i = 0; i < nodoImpresionHoja.getNumClaves(); i++) {
+                        if (nodoImpresionHoja.getClaves()[i] != null) {
+                            result = result + nodoImpresionHoja.getClaves()[i] + " ";
+                        }
+                    }
+                    result = result + "    ";
+                    nodoImpresionHoja = nodoImpresionHoja.getHermanoDer();
+                }
+
+            }
+            else {
+                NodoBPlusIntr nodoInicialIntr = (NodoBPlusIntr) raiz.getHijos()[0];
+                boolean otroNodoInterno;
+                do {
+                    NodoBPlusIntr nodoImpresionIntr = nodoInicialIntr;
+                    result = result + "\n";
+                    result = result + "Intr" + contInternos + ": ";
+                    while (nodoImpresionIntr != null) {
+                        for (int i = 0; i < nodoImpresionIntr.getNumClaves(); i++) {
+                            if (nodoImpresionIntr.getClaves()[i] != null) {
+                                result = result + nodoImpresionIntr.getClaves()[i] + " ";
+                            }
+                            else {
+                                break;
+                            }
+                        }
+                        result = result + "    ";
+                        nodoImpresionIntr = nodoImpresionIntr.getHermanoDer();
+                    }
+                    contInternos++;
+                    if(!nodoInicialIntr.getHijos()[0].isHoja()) {
+                        nodoInicialIntr = (NodoBPlusIntr) nodoInicialIntr.getHijos()[0];
+                        otroNodoInterno = true;
+                    }
+                    else {
+                        otroNodoInterno = false;
+                    }
+
+                }
+                while (otroNodoInterno);
+
+                result =  result + "\n";
+                nodoImpresionHoja = primeraHoja;
+                result += "Hojas: ";
+                while (nodoImpresionHoja != null) {
+                    for (int i = 0; i < nodoImpresionHoja.getNumClaves(); i++) {
+                        result = result + nodoImpresionHoja.getClaves()[i] + " " ;
+                    }
+                    result = result + "    ";
+                    nodoImpresionHoja = nodoImpresionHoja.getHermanoDer();
+                }
+            }
+
+
+        }
+        return result;
+    }
+
+
 
 }
